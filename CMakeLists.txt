@@ -4,6 +4,14 @@ project(snake LANGUAGES CXX C)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# MSVC 18+: <cmath>/<cstdlib> fail to find C math functions in global namespace.
+# Force-include the C runtime math/stdlib headers BEFORE any source is compiled.
+# This must be set at the directory level (not target level) to affect all TUs including thirdparty.
+if(MSVC)
+    set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} /FI\"corecrt_math.h\" /FI\"stdlib.h\"")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /FI\"corecrt_math.h\" /FI\"stdlib.h\"")
+endif()
+
 # Сборка как DLL
 add_library(${PROJECT_NAME} SHARED
     # Core
