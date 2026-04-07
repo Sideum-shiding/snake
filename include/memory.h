@@ -1,7 +1,9 @@
 #pragma once
-#include <windows.h>
+#include <math.h>
+#include <stdlib.h>
 #include <cstdint>
 #include <string>
+#include <windows.h>
 
 namespace Memory {
     // Получить базовый адрес модуля по имени
