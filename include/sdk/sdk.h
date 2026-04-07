@@ -1,4 +1,10 @@
 #pragma once
+
+// MSVC 18+: C math/stdlib headers must be included before C++ wrappers
+// when WIN32_LEAN_AND_MEAN is defined, otherwise <cmath>/<cstdlib> fail
+#include <math.h>
+#include <stdlib.h>
+
 #include <windows.h>
 #include <cstdint>
 
