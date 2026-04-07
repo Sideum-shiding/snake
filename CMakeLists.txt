@@ -49,8 +49,8 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 )
 
 # Определения для Win32
+# NOTE: WIN32_LEAN_AND_MEAN removed to avoid stripping headers that <cmath> depends on
 target_compile_definitions(${PROJECT_NAME} PRIVATE
-    WIN32_LEAN_AND_MEAN
     NOMINMAX
     UNICODE
     _UNICODE

@@ -1,6 +1,12 @@
 #pragma once
-#include <windows.h>
+
+// IMPORTANT: <cmath> and <cstdlib> must be included BEFORE <windows.h>
+// to avoid MSVC "not a member of global namespace" errors with math functions.
+#include <cmath>
+#include <cstdlib>
 #include <cstdint>
+
+#include <windows.h>
 
 // Базовые структуры для координат
 struct Vector3 {
