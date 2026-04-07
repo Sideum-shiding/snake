@@ -49,18 +49,13 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 )
 
 # Определения для Win32
+# NOTE: WIN32_LEAN_AND_MEAN intentionally omitted - it breaks <cmath>/<cstdlib>
+# on MSVC 18+ by stripping CRT compatibility headers from <windows.h>
 target_compile_definitions(${PROJECT_NAME} PRIVATE
-    WIN32_LEAN_AND_MEAN
     NOMINMAX
     UNICODE
     _UNICODE
 )
-
-# MSVC: принудительно включить stdlib.h и math.h перед всеми .cpp файлами,
-# чтобы <cstdlib> и <cmath> нашли C-функции в global namespace
-if(MSVC)
-    target_compile_options(${PROJECT_NAME} PRIVATE /FI"stdlib.h" /FI"math.h")
-endif()
 
 # Суффикс .dll (по умолчанию на Windows, явно для ясности)
 set_target_properties(${PROJECT_NAME} PROPERTIES
