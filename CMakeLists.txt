@@ -56,6 +56,12 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
     _UNICODE
 )
 
+# MSVC: принудительно включить stdlib.h и math.h перед всеми .cpp файлами,
+# чтобы <cstdlib> и <cmath> нашли C-функции в global namespace
+if(MSVC)
+    target_compile_options(${PROJECT_NAME} PRIVATE /FI"stdlib.h" /FI"math.h")
+endif()
+
 # Суффикс .dll (по умолчанию на Windows, явно для ясности)
 set_target_properties(${PROJECT_NAME} PROPERTIES
     OUTPUT_NAME "snake"
