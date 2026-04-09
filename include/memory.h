@@ -1,8 +1,8 @@
 #pragma once
+#include <string>
 #include <math.h>
 #include <stdlib.h>
 #include <cstdint>
-#include <string>
 #include <windows.h>
 
 namespace Memory {
