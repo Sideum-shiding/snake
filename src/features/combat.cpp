@@ -1,3 +1,5 @@
+#include <cmath>
+
 #include "../../include/features/combat.h"
 #include "../../include/settings.h"
 #include "../../include/memory.h"
@@ -7,7 +9,6 @@
 #include "../../include/sdk/sdk.h"
 
 #include <windows.h>
-#include <cmath>
 
 // Высота глаз (EyePos = Origin + ViewOffset, обычно z ~= 64.06)
 constexpr float EYE_HEIGHT = 64.06f;

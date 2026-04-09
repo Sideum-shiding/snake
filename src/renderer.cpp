@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "../include/renderer.h"
 #include "../include/settings.h"
 #include "../include/config.h"
@@ -7,7 +9,6 @@
 #include "../thirdparty/imgui/backends/imgui_impl_dx11.h"
 
 #include <d3d11.h>
-#include <algorithm>
 
 // Forward declare для обработки WndProc ImGui
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);

@@ -1,7 +1,7 @@
-#include "../include/memory.h"
-#include <psapi.h>
 #include <vector>
 #include <sstream>
+#include "../include/memory.h"
+#include <psapi.h>
 
 namespace Memory {
 

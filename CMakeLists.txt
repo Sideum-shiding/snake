@@ -8,8 +8,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Force-include the C runtime math/stdlib headers BEFORE any source is compiled.
 # This must be set at the directory level (not target level) to affect all TUs including thirdparty.
 if(MSVC)
-    set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} /FI\"corecrt_math.h\" /FI\"stdlib.h\"")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /FI\"corecrt_math.h\" /FI\"stdlib.h\"")
+    # Removing force includes as they break MSVC <string> and <new> STL headers
+    # set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} /FI\"corecrt_math.h\" /FI\"stdlib.h\"")
+    # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /FI\"corecrt_math.h\" /FI\"stdlib.h\"")
 endif()
 
 # Сборка как DLL

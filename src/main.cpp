@@ -1,7 +1,7 @@
 #include <new>
-#include <windows.h>
 #include <thread>
 #include <chrono>
+#include <windows.h>
 
 #include "../include/hooks.h"
 #include "../include/settings.h"

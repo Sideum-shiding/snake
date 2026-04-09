@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "../../include/features/visuals.h"
 #include "../../include/settings.h"
 #include "../../include/memory.h"
@@ -7,7 +9,6 @@
 #include "../../include/sdk/sdk.h"
 
 #include "../../thirdparty/imgui/imgui.h"
-#include <algorithm>
 
 namespace Features {
 namespace Visuals {
