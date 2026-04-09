@@ -7,6 +7,7 @@
 #include "../../include/sdk/sdk.h"
 
 #include "../../thirdparty/imgui/imgui.h"
+#include <algorithm>
 
 namespace Features {
 namespace Visuals {
@@ -79,7 +80,7 @@ void Run() {
         uintptr_t sceneNode = Memory::Read<uintptr_t>(pawn + cs2_dumper::schemas::client_dll::C_BaseEntity::m_pGameSceneNode);
         if (!sceneNode) continue;
 
-        // Позиция ног (m_vOldOrigin находится в SceneNode)
+        // Позиция ног (m_vecAbsOrigin находится в SceneNode)
         Vector3 origin = Memory::Read<Vector3>(sceneNode + cs2_dumper::schemas::client_dll::CGameSceneNode::m_vecAbsOrigin);
         if (origin.x == 0.0f && origin.y == 0.0f && origin.z == 0.0f) continue;
 
@@ -114,6 +115,13 @@ void Run() {
 
         // Расчет размеров бокса
         float boxHeight = screenFeet.y - screenHead.y;
+        
+        // Защита от перевернутой камеры / кривых проекций
+        if (boxHeight < 0.0f) {
+            boxHeight = -boxHeight;
+            std::swap(screenFeet.y, screenHead.y);
+        }
+        
         float boxWidth  = boxHeight * 0.4f;
 
         float boxLeft   = screenHead.x - boxWidth * 0.5f;

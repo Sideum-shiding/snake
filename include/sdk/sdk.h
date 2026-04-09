@@ -7,6 +7,7 @@
 
 #include <windows.h>
 #include <cstdint>
+#include "../memory.h"
 
 // Базовые структуры для координат
 struct Vector3 {
@@ -35,12 +36,12 @@ class GameEntity {
 public:
     // Функция для получения адреса Pawn по хэндлу (m_hPlayerPawn)
     static uintptr_t GetPawnFromHandle(uintptr_t entityList, uint32_t handle) {
-        if (handle == 0xFFFFFFFF) return 0;
+        if (!entityList || handle == 0xFFFFFFFF) return 0;
 
         // В CS2 EntityList разбит на чанки по 512 сущностей
-        uintptr_t listEntry = *(uintptr_t*)(entityList + 0x8 * ((handle & 0x7FFF) >> 9) + 16);
+        uintptr_t listEntry = Memory::Read<uintptr_t>(entityList + 0x8 * ((handle & 0x7FFF) >> 9) + 16);
         if (!listEntry) return 0;
 
-        return *(uintptr_t*)(listEntry + 120 * (handle & 0x1FF));
+        return Memory::Read<uintptr_t>(listEntry + 120 * (handle & 0x1FF));
     }
 };
