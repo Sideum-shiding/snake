@@ -9,6 +9,8 @@
 #include "../thirdparty/imgui/backends/imgui_impl_dx11.h"
 
 #include <d3d11.h>
+#include "../include/memory.h"
+#include "../include/sdk/offsets.hpp"
 
 // Forward declare для обработки WndProc ImGui
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -68,7 +70,7 @@ bool Init(IDXGISwapChain* swapChain) {
     fontConfig.OversampleH = 3; // Улучшенное сглаживание по горизонтали
     fontConfig.OversampleV = 3; // Улучшенное сглаживание по вертикали
     fontConfig.PixelSnapH = true;
-    io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\segoeui.ttf", 18.0f, &fontConfig, io.Fonts->GetGlyphRangesCyrillic());
+    io.Fonts->AddFontFromFileTTF("../\Windo../\Fon../\segoeui.ttf", 18.0f, &fontConfig, io.Fonts->GetGlyphRangesCyrillic());
 
     // Темная тема / Fatality стиль
     ImGuiStyle& style = ImGui::GetStyle();
@@ -229,7 +231,7 @@ void DrawMenu() {
             ImGui::SliderFloat("FOV", &g_Settings.aimbot.fov, 1.0f, 30.0f, "%.1f deg");
             ImGui::SliderFloat("Smooth", &g_Settings.aimbot.smooth, 1.0f, 20.0f, "%.1f");
             ImGui::Checkbox("Visible Only", &g_Settings.aimbot.visibleOnly);
-            ImGui::Combo("Hitbox", &g_Settings.aimbot.hitbox, "Head\0Neck\0Chest\0");
+            ImGui::Combo("Hitbox", &g_Settings.aimbot.hitbox, "He../0Ne../0Che../0");
             ImGui::EndChild();
             
             ImGui::NextColumn();
@@ -317,6 +319,33 @@ void DrawMenu() {
 
     ImGui::End(); // SnakeMenu
     ImGui::PopStyleVar(); // alpha
+
+    // --- DEBUG INFO ---
+    if (g_Settings.menu.open) {
+        ImGui::Begin("Debug Info", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+        
+        uintptr_t clientBase = Memory::GetModuleBase("client.dll");
+        uintptr_t engineBase = Memory::GetModuleBase("engine2.dll");
+        ImGui::Text("client.dll: %p", (void*)clientBase);
+        ImGui::Text("engine2.dll: %p", (void*)engineBase);
+        
+        if (clientBase) {
+            uintptr_t localPawn = Memory::Read<uintptr_t>(clientBase + cs2_dumper::offsets::client_dll::dwLocalPlayerPawn);
+            ImGui::Text("LocalPlayerPawn: %p", (void*)localPawn);
+            
+            uintptr_t entityList = Memory::Read<uintptr_t>(clientBase + cs2_dumper::offsets::client_dll::dwEntityList);
+            ImGui::Text("EntityList: %p", (void*)entityList);
+            
+            if (engineBase) {
+                int screenW = Memory::Read<int>(engineBase + cs2_dumper::offsets::engine2_dll::dwWindowWidth);
+                int screenH = Memory::Read<int>(engineBase + cs2_dumper::offsets::engine2_dll::dwWindowHeight);
+                ImGui::Text("Screen (engine2): %dx%d", screenW, screenH);
+            }
+        }
+        ImGui::Text("UI Display Size: %.0fx%.0f", ImGui::GetIO().DisplaySize.x, ImGui::GetIO().DisplaySize.y);
+        
+        ImGui::End();
+    }
 }
 
 } // namespace Renderer

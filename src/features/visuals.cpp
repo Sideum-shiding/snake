@@ -26,12 +26,9 @@ void Run() {
     uintptr_t clientBase = Memory::GetModuleBase("client.dll");
     if (!clientBase) return;
 
-    // Получаем экранные размеры из engine2.dll
-    uintptr_t engineBase = Memory::GetModuleBase("engine2.dll");
-    if (!engineBase) return;
-
-    int screenW = Memory::Read<int>(engineBase + cs2_dumper::offsets::engine2_dll::dwWindowWidth);
-    int screenH = Memory::Read<int>(engineBase + cs2_dumper::offsets::engine2_dll::dwWindowHeight);
+    // Используем размеры экрана из ImGui (более надежно и не требует чтения памяти engine2.dll)
+    int screenW = static_cast<int>(ImGui::GetIO().DisplaySize.x);
+    int screenH = static_cast<int>(ImGui::GetIO().DisplaySize.y);
     if (screenW <= 0 || screenH <= 0) return;
 
     // Читаем ViewMatrix
@@ -43,7 +40,7 @@ void Run() {
         clientBase + cs2_dumper::offsets::client_dll::dwLocalPlayerPawn);
     if (!localPawn) return;
 
-    int localTeam = Memory::Read<int>(localPawn + cs2_dumper::schemas::client_dll::C_BaseEntity::m_iTeamNum);
+    int localTeam = Memory::Read<uint8_t>(localPawn + cs2_dumper::schemas::client_dll::C_BaseEntity::m_iTeamNum);
     if (localTeam <= 0) return; // Игрок еще не загрузился до конца
 
     // Получаем EntityList
@@ -74,7 +71,7 @@ void Run() {
         if (health <= 0 || health > 200) continue;
 
         // Проверка команды (не рисуем союзников)
-        int team = Memory::Read<int>(pawn + cs2_dumper::schemas::client_dll::C_BaseEntity::m_iTeamNum);
+        int team = Memory::Read<uint8_t>(pawn + cs2_dumper::schemas::client_dll::C_BaseEntity::m_iTeamNum);
         if (team <= 0 || team == localTeam) continue;
 
         // Получаем GameSceneNode для позиции

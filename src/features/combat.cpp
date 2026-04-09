@@ -32,7 +32,7 @@ void RunAimbot() {
         clientBase + cs2_dumper::offsets::client_dll::dwLocalPlayerPawn);
     if (!localPawn) return;
 
-    int localTeam = Memory::Read<int>(localPawn + cs2_dumper::schemas::client_dll::C_BaseEntity::m_iTeamNum);
+    int localTeam = Memory::Read<uint8_t>(localPawn + cs2_dumper::schemas::client_dll::C_BaseEntity::m_iTeamNum);
     if (localTeam <= 0) return;
 
     // EyePos = Origin + ViewOffset
@@ -73,7 +73,7 @@ void RunAimbot() {
         int health = Memory::Read<int>(pawn + cs2_dumper::schemas::client_dll::C_BaseEntity::m_iHealth);
         if (health <= 0 || health > 100) continue;
 
-        int team = Memory::Read<int>(pawn + cs2_dumper::schemas::client_dll::C_BaseEntity::m_iTeamNum);
+        int team = Memory::Read<uint8_t>(pawn + cs2_dumper::schemas::client_dll::C_BaseEntity::m_iTeamNum);
         if (team <= 0 || team == localTeam) continue;
 
         // Позиция цели
@@ -142,7 +142,7 @@ void RunTriggerbot() {
         clientBase + cs2_dumper::offsets::client_dll::dwLocalPlayerPawn);
     if (!localPawn) return;
 
-    int localTeam = Memory::Read<int>(localPawn + cs2_dumper::schemas::client_dll::C_BaseEntity::m_iTeamNum);
+    int localTeam = Memory::Read<uint8_t>(localPawn + cs2_dumper::schemas::client_dll::C_BaseEntity::m_iTeamNum);
     if (localTeam <= 0) return;
 
     // Читаем m_iIDEntIndex (индекс сущности под прицелом)
@@ -173,7 +173,7 @@ void RunTriggerbot() {
     if (health <= 0 || health > 200) return;
 
     // Проверка команды (не стреляем по союзникам, если не включен FF)
-    int targetTeam = Memory::Read<int>(targetPawn + cs2_dumper::schemas::client_dll::C_BaseEntity::m_iTeamNum);
+    int targetTeam = Memory::Read<uint8_t>(targetPawn + cs2_dumper::schemas::client_dll::C_BaseEntity::m_iTeamNum);
     if (!g_Settings.triggerbot.friendlyFire && targetTeam == localTeam) return;
 
     // Неблокирующая задержка (вместо sleep_for, замораживавшего игру)
