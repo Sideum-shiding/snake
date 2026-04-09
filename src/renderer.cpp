@@ -62,6 +62,13 @@ bool Init(IDXGISwapChain* swapChain) {
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.IniFilename = nullptr; // Не сохраняем imgui.ini
 
+    // Настройка сглаженного системного шрифта (Segoe UI) с поддержкой кириллицы
+    ImFontConfig fontConfig;
+    fontConfig.OversampleH = 3; // Улучшенное сглаживание по горизонтали
+    fontConfig.OversampleV = 3; // Улучшенное сглаживание по вертикали
+    fontConfig.PixelSnapH = true;
+    io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\segoeui.ttf", 18.0f, &fontConfig, io.Fonts->GetGlyphRangesCyrillic());
+
     // Темная тема / Fatality стиль
     ImGuiStyle& style = ImGui::GetStyle();
     style.WindowRounding    = 4.0f;
