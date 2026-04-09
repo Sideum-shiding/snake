@@ -3,21 +3,13 @@
 #include "../../include/memory.h"
 #include "../../include/math.h"
 #include "../../include/sdk/offsets.hpp"
+#include "../../include/sdk/client_dll.hpp"
 #include "../../include/sdk/sdk.h"
 
 #include "../../thirdparty/imgui/imgui.h"
 
 namespace Features {
 namespace Visuals {
-
-// Оффсеты для полей сущности
-constexpr std::ptrdiff_t m_iHealth        = 0x354;
-constexpr std::ptrdiff_t m_iTeamNum       = 0x3E3;
-constexpr std::ptrdiff_t m_pGameSceneNode = 0x338;
-constexpr std::ptrdiff_t m_vOldOrigin     = 0x1588;
-constexpr std::ptrdiff_t m_hPlayerPawn    = 0x80C;
-constexpr std::ptrdiff_t m_bSpottedByMask = 0x16C4;
-constexpr std::ptrdiff_t m_sSanitizedPlayerName = 0x770;
 
 // Высота модели игрока в юнитах (приблизительно)
 constexpr float PLAYER_HEIGHT = 72.0f;
@@ -49,7 +41,8 @@ void Run() {
         clientBase + cs2_dumper::offsets::client_dll::dwLocalPlayerPawn);
     if (!localPawn) return;
 
-    int localTeam = Memory::Read<int>(localPawn + m_iTeamNum);
+    int localTeam = Memory::Read<int>(localPawn + cs2_dumper::schemas::client_dll::C_BaseEntity::m_iTeamNum);
+    if (localTeam <= 0) return; // Игрок еще не загрузился до конца
 
     // Получаем EntityList
     uintptr_t entityList = Memory::Read<uintptr_t>(
@@ -67,27 +60,28 @@ void Run() {
         if (!controller) continue;
 
         // Получаем хэндл pawn из контроллера
-        uint32_t pawnHandle = Memory::Read<uint32_t>(controller + m_hPlayerPawn);
-        if (pawnHandle == 0xFFFFFFFF) continue;
+        uint32_t pawnHandle = Memory::Read<uint32_t>(controller + cs2_dumper::schemas::client_dll::CCSPlayerController::m_hPlayerPawn);
+        if (!pawnHandle || pawnHandle == 0xFFFFFFFF) continue;
 
         // Получаем Pawn
         uintptr_t pawn = GameEntity::GetPawnFromHandle(entityList, pawnHandle);
         if (!pawn || pawn == localPawn) continue;
 
         // Проверка здоровья
-        int health = Memory::Read<int>(pawn + m_iHealth);
-        if (health <= 0 || health > 100) continue;
+        int health = Memory::Read<int>(pawn + cs2_dumper::schemas::client_dll::C_BaseEntity::m_iHealth);
+        if (health <= 0 || health > 200) continue;
 
         // Проверка команды (не рисуем союзников)
-        int team = Memory::Read<int>(pawn + m_iTeamNum);
-        if (team == localTeam) continue;
+        int team = Memory::Read<int>(pawn + cs2_dumper::schemas::client_dll::C_BaseEntity::m_iTeamNum);
+        if (team <= 0 || team == localTeam) continue;
 
         // Получаем GameSceneNode для позиции
-        uintptr_t sceneNode = Memory::Read<uintptr_t>(pawn + m_pGameSceneNode);
+        uintptr_t sceneNode = Memory::Read<uintptr_t>(pawn + cs2_dumper::schemas::client_dll::C_BaseEntity::m_pGameSceneNode);
         if (!sceneNode) continue;
 
         // Позиция ног (m_vOldOrigin находится в SceneNode)
-        Vector3 origin = Memory::Read<Vector3>(sceneNode + m_vOldOrigin);
+        Vector3 origin = Memory::Read<Vector3>(sceneNode + cs2_dumper::schemas::client_dll::CGameSceneNode::m_vecAbsOrigin);
+        if (origin.x == 0.0f && origin.y == 0.0f && origin.z == 0.0f) continue;
 
         // Позиция головы (прибавляем высоту)
         Vector3 headPos = { origin.x, origin.y, origin.z + PLAYER_HEIGHT };
@@ -97,8 +91,9 @@ void Run() {
         if (!Math::WorldToScreen(origin, screenFeet, viewMatrix, screenW, screenH)) continue;
         if (!Math::WorldToScreen(headPos, screenHead, viewMatrix, screenW, screenH)) continue;
 
-        // Проверка видимости через m_bSpottedByMask
-        uint32_t spottedMask = Memory::Read<uint32_t>(pawn + m_bSpottedByMask);
+        // Проверка видимости через m_entitySpottedState
+        uintptr_t spottedState = pawn + cs2_dumper::schemas::client_dll::C_CSPlayerPawnBase::m_entitySpottedState;
+        uint32_t spottedMask = Memory::Read<uint32_t>(spottedState + cs2_dumper::schemas::client_dll::EntitySpottedState_t::m_bSpottedByMask);
         bool isVisible = (spottedMask & (1 << (i - 1))) != 0; // Упрощенная проверка
 
         // Выбор цвета: зеленый если видим, красный если нет

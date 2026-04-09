@@ -4,6 +4,8 @@
 #include "../include/features/visuals.h"
 #include "../include/features/combat.h"
 #include "../include/features/misc.h"
+#include "../include/memory.h"
+#include "../include/sdk/offsets.hpp"
 
 #include "../thirdparty/minhook/include/MinHook.h"
 
@@ -100,35 +102,63 @@ void Cleanup() {
 }
 
 HRESULT __stdcall hkPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT flags) {
+    if (!swapChain) {
+        return oPresent(swapChain, syncInterval, flags);
+    }
+
     // Инициализация ImGui при первом вызове
     if (!Renderer::g_Initialized) {
-        Renderer::Init(swapChain);
+        if (!Renderer::Init(swapChain)) {
+            return oPresent(swapChain, syncInterval, flags);
+        }
+    }
+
+    // Защита от отрисовки при сворачивании или загрузке карты
+    if (!Renderer::g_Device || !Renderer::g_Context || !Renderer::g_RenderTarget) {
+        return oPresent(swapChain, syncInterval, flags);
+    }
+
+    uintptr_t clientBase = Memory::GetModuleBase("client.dll");
+    bool isInGame = false;
+    
+    if (clientBase) {
+        uintptr_t localPawn = Memory::Read<uintptr_t>(
+            clientBase + cs2_dumper::offsets::client_dll::dwLocalPlayerPawn);
+        uintptr_t entityList = Memory::Read<uintptr_t>(
+            clientBase + cs2_dumper::offsets::client_dll::dwEntityList);
+        
+        // Строгая проверка, чтобы не заблокировать поток при загрузке карты/потере контекста
+        if (localPawn != 0 && entityList != 0) {
+            isInGame = true;
+        }
     }
 
     // Начало кадра ImGui
     Renderer::BeginFrame();
 
-    // Отрисовка меню
+    // Отрисовка меню доступна всегда
     if (g_Settings.menu.open) {
         Renderer::DrawMenu();
     }
 
-    // Вызов фич
-    if (g_Settings.visuals.enabled) {
-        Features::Visuals::Run();
-    }
-    if (g_Settings.aimbot.enabled) {
-        Features::Combat::RunAimbot();
-    }
-    if (g_Settings.triggerbot.enabled) {
-        Features::Combat::RunTriggerbot();
-    }
-    if (g_Settings.misc.bhop) {
-        Features::Misc::RunBhop();
-    }
+    // Вызов фич (в т.ч. ESP/Aimbot) только если игра и данные сущностей полностью валидны и мы в матче
+    if (isInGame) {
+        if (g_Settings.visuals.enabled) {
+            Features::Visuals::Run();
+        }
+        if (g_Settings.aimbot.enabled) {
+            Features::Combat::RunAimbot();
+        }
+        if (g_Settings.triggerbot.enabled) {
+            Features::Combat::RunTriggerbot();
+        }
+        if (g_Settings.misc.bhop) {
+            Features::Misc::RunBhop();
+        }
 
-    Features::Misc::RunThirdPerson();
-    Features::Misc::RunAspectRatio();
+        Features::Misc::RunThirdPerson();
+        Features::Misc::RunAspectRatio();
+    }
 
     // Завершение кадра
     Renderer::EndFrame();
