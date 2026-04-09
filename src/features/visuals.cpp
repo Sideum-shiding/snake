@@ -92,7 +92,7 @@ void Run() {
         if (!Math::WorldToScreen(headPos, screenHead, viewMatrix, screenW, screenH)) continue;
 
         // Проверка видимости через m_entitySpottedState
-        uintptr_t spottedState = pawn + cs2_dumper::schemas::client_dll::C_CSPlayerPawnBase::m_entitySpottedState;
+        uintptr_t spottedState = pawn + cs2_dumper::schemas::client_dll::C_CSPlayerPawn::m_entitySpottedState;
         uint32_t spottedMask = Memory::Read<uint32_t>(spottedState + cs2_dumper::schemas::client_dll::EntitySpottedState_t::m_bSpottedByMask);
         bool isVisible = (spottedMask & (1 << (i - 1))) != 0; // Упрощенная проверка
 

@@ -7,6 +7,7 @@
 #include "../thirdparty/imgui/backends/imgui_impl_dx11.h"
 
 #include <d3d11.h>
+#include <algorithm>
 
 // Forward declare для обработки WndProc ImGui
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -140,9 +141,9 @@ void DrawMenu() {
     // Анимация Fade-in / Fade-out (Alpha channel)
     static float alpha = 0.0f;
     if (g_Settings.menu.open) {
-        alpha = ImMin(alpha + ImGui::GetIO().DeltaTime * 6.0f, 1.0f);
+        alpha = std::min(alpha + ImGui::GetIO().DeltaTime * 6.0f, 1.0f);
     } else {
-        alpha = ImMax(alpha - ImGui::GetIO().DeltaTime * 6.0f, 0.0f);
+        alpha = std::max(alpha - ImGui::GetIO().DeltaTime * 6.0f, 0.0f);
     }
 
     if (alpha <= 0.01f) return;
