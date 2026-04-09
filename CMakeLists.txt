@@ -24,6 +24,9 @@ add_library(${PROJECT_NAME} SHARED
     src/config.cpp
 
     # Features
+    src/features/visuals.cpp
+    src/features/combat.cpp
+    src/features/misc.cpp
 
     # ImGui core
     thirdparty/imgui/imgui.cpp

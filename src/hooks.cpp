@@ -1,6 +1,9 @@
 #include "../include/hooks.h"
 #include "../include/renderer.h"
 #include "../include/settings.h"
+#include "../include/features/visuals.h"
+#include "../include/features/combat.h"
+#include "../include/features/misc.h"
 #include "../include/memory.h"
 #include "../include/sdk/offsets.hpp"
 
@@ -141,14 +144,20 @@ HRESULT __stdcall hkPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT f
     // Вызов фич (в т.ч. ESP/Aimbot) только если игра и данные сущностей полностью валидны и мы в матче
     if (isInGame) {
         if (g_Settings.visuals.enabled) {
+            Features::Visuals::Run();
         }
         if (g_Settings.aimbot.enabled) {
+            Features::Combat::RunAimbot();
         }
         if (g_Settings.triggerbot.enabled) {
+            Features::Combat::RunTriggerbot();
         }
         if (g_Settings.misc.bhop) {
+            Features::Misc::RunBhop();
         }
 
+        Features::Misc::RunThirdPerson();
+        Features::Misc::RunAspectRatio();
     }
 
     // Завершение кадра
