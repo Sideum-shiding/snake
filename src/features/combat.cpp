@@ -145,7 +145,7 @@ void RunTriggerbot() {
     if (localTeam <= 0) return;
 
     // Читаем m_iIDEntIndex (индекс сущности под прицелом)
-    int crosshairEntity = Memory::Read<int>(localPawn + cs2_dumper::schemas::client_dll::C_CSPlayerPawnBase::m_iIDEntIndex);
+    int crosshairEntity = Memory::Read<int>(localPawn + cs2_dumper::schemas::client_dll::C_CSPlayerPawn::m_iIDEntIndex);
     if (crosshairEntity <= 0 || crosshairEntity > 64) return;
 
     // Получаем EntityList

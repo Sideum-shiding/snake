@@ -58,18 +58,21 @@ void RunThirdPerson() {
         g_ThirdPersonKeyPressed = false;
     }
 
+    uintptr_t observerServices = Memory::Read<uintptr_t>(localPawn + cs2_dumper::schemas::client_dll::C_BasePlayerPawn::m_pObserverServices);
+    if (!observerServices) return;
+
     // Читаем текущий режим
-    int currentObserverMode = Memory::Read<int>(localPawn + cs2_dumper::schemas::client_dll::C_BasePlayerPawn::m_iObserverMode);
+    int currentObserverMode = Memory::Read<uint8_t>(observerServices + cs2_dumper::schemas::client_dll::CPlayer_ObserverServices::m_iObserverMode);
     
     // 0 = first person, 1 = third person (chase)
     if (g_Settings.misc.thirdPerson) {
         if (currentObserverMode != 1) {
-            Memory::Write<int>(localPawn + cs2_dumper::schemas::client_dll::C_BasePlayerPawn::m_iObserverMode, 1);
+            Memory::Write<uint8_t>(observerServices + cs2_dumper::schemas::client_dll::CPlayer_ObserverServices::m_iObserverMode, 1);
         }
     } else {
         if (currentObserverMode == 1) {
             // Возвращаем в first person только если мы сами его туда переключили
-            Memory::Write<int>(localPawn + cs2_dumper::schemas::client_dll::C_BasePlayerPawn::m_iObserverMode, 0);
+            Memory::Write<uint8_t>(observerServices + cs2_dumper::schemas::client_dll::CPlayer_ObserverServices::m_iObserverMode, 0);
         }
     }
 }
