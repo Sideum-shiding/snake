@@ -3,7 +3,7 @@
 #include "../../include/features/combat.h"
 #include "../../include/settings.h"
 #include "../../include/memory.h"
-#include "../../include/math.h"
+#include "../../include/math_utils.h"
 #include "../../include/sdk/offsets.hpp"
 #include "../../include/sdk/client_dll.hpp"
 #include "../../include/sdk/sdk.h"

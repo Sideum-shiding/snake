@@ -19,7 +19,7 @@ add_library(${PROJECT_NAME} SHARED
     src/main.cpp
     src/hooks.cpp
     src/renderer.cpp
-    src/math.cpp
+    src/math_utils.cpp
     src/memory.cpp
     src/config.cpp
 
