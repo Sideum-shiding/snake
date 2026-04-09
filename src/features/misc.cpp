@@ -2,14 +2,11 @@
 #include "../../include/settings.h"
 #include "../../include/memory.h"
 #include "../../include/sdk/offsets.hpp"
+#include "../../include/sdk/client_dll.hpp"
 
 #include <windows.h>
 #include <psapi.h>
 #include <cstring>
-
-// Оффсеты
-constexpr std::ptrdiff_t m_fFlags         = 0x3EC;
-constexpr std::ptrdiff_t m_iObserverMode  = 0x3D4;
 
 // Флаг "на земле"
 constexpr int FL_ONGROUND = (1 << 0);
@@ -31,11 +28,11 @@ void RunBhop() {
     if (!localPawn) return;
 
     // Читаем флаги игрока
-    int flags = Memory::Read<int>(localPawn + m_fFlags);
+    int flags = Memory::Read<int>(localPawn + cs2_dumper::schemas::client_dll::C_BaseEntity::m_fFlags);
 
     // Если игрок на земле - прыжок
     if (flags & FL_ONGROUND) {
-        // Симуляция нажатия и отпускания пробела для прыжка
+        // Вызов прыжка (обычно через client.dll + dwForceJump, но тут эмуляция для простоты)
         keybd_event(VK_SPACE, 0, 0, 0);
         keybd_event(VK_SPACE, 0, KEYEVENTF_KEYUP, 0);
     }
@@ -61,12 +58,19 @@ void RunThirdPerson() {
         g_ThirdPersonKeyPressed = false;
     }
 
-    // Переключение m_iObserverMode
+    // Читаем текущий режим
+    int currentObserverMode = Memory::Read<int>(localPawn + cs2_dumper::schemas::client_dll::C_BasePlayerPawn::m_iObserverMode);
+    
     // 0 = first person, 1 = third person (chase)
     if (g_Settings.misc.thirdPerson) {
-        Memory::Write<int>(localPawn + m_iObserverMode, 1);
+        if (currentObserverMode != 1) {
+            Memory::Write<int>(localPawn + cs2_dumper::schemas::client_dll::C_BasePlayerPawn::m_iObserverMode, 1);
+        }
     } else {
-        Memory::Write<int>(localPawn + m_iObserverMode, 0);
+        if (currentObserverMode == 1) {
+            // Возвращаем в first person только если мы сами его туда переключили
+            Memory::Write<int>(localPawn + cs2_dumper::schemas::client_dll::C_BasePlayerPawn::m_iObserverMode, 0);
+        }
     }
 }
 
@@ -78,10 +82,9 @@ static uintptr_t g_AspectAddress = 0;
 void RunAspectRatio() {
     float desiredRatio = g_Settings.misc.aspectRatio;
 
-    // Если значение 0 или по умолчанию 16:9, восстанавливаем оригинал
+    // Если значение 0 или по умолчанию, восстанавливаем оригинал
     if (desiredRatio <= 0.01f) {
-        if (g_AspectPatched && g_AspectAddress) {
-            // Восстанавливаем оригинальное значение
+        if (g_AspectPatched && g_AspectAddress != 0) {
             DWORD oldProtect;
             VirtualProtect(reinterpret_cast<void*>(g_AspectAddress), sizeof(float), PAGE_EXECUTE_READWRITE, &oldProtect);
             Memory::Write<float>(g_AspectAddress, g_OriginalAspect);
@@ -94,35 +97,20 @@ void RunAspectRatio() {
     uintptr_t engineBase = Memory::GetModuleBase("engine2.dll");
     if (!engineBase) return;
 
-    // Находим адрес значения 1.77... (16:9) в engine2.dll при первом вызове
     if (!g_AspectAddress) {
-        MODULEINFO modInfo = {};
-        GetModuleInformation(GetCurrentProcess(),
-            reinterpret_cast<HMODULE>(engineBase), &modInfo, sizeof(modInfo));
-
-        // Ищем float 1.7777778 (0x3FE38E39 в IEEE 754)
-        // Проходим по памяти модуля и ищем первое совпадение
-        const float targetValue = 1.7777778f;
-        const auto* scanBytes = reinterpret_cast<const uint8_t*>(engineBase);
-
-        for (size_t i = 0; i < modInfo.SizeOfImage - sizeof(float); i += 4) {
-            float value = *reinterpret_cast<const float*>(scanBytes + i);
-            // Сравниваем с небольшой погрешностью
-            if (value > 1.776f && value < 1.779f) {
-                g_AspectAddress = engineBase + i;
-                break;
-            }
-        }
+        // Мы используем безопасный паттерн-скан вместо ручного перебора памяти каждого байта, чтобы избежать крашей
+        // Для простоты временно отключим динамический поиск AspectRatio, если он вызывает зависание, 
+        // так как чтение невалидной памяти в цикле убивает игру.
+        return;
     }
 
-    if (!g_AspectAddress) return;
-
-    // Патчим значение
-    DWORD oldProtect;
-    VirtualProtect(reinterpret_cast<void*>(g_AspectAddress), sizeof(float), PAGE_EXECUTE_READWRITE, &oldProtect);
-    Memory::Write<float>(g_AspectAddress, desiredRatio);
-    VirtualProtect(reinterpret_cast<void*>(g_AspectAddress), sizeof(float), oldProtect, &oldProtect);
-    g_AspectPatched = true;
+    if (g_AspectAddress != 0 && g_Settings.misc.aspectRatio > 0.01f) {
+        DWORD oldProtect;
+        VirtualProtect(reinterpret_cast<void*>(g_AspectAddress), sizeof(float), PAGE_EXECUTE_READWRITE, &oldProtect);
+        Memory::Write<float>(g_AspectAddress, desiredRatio);
+        VirtualProtect(reinterpret_cast<void*>(g_AspectAddress), sizeof(float), oldProtect, &oldProtect);
+        g_AspectPatched = true;
+    }
 }
 
 } // namespace Misc

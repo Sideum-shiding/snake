@@ -3,21 +3,11 @@
 #include "../../include/memory.h"
 #include "../../include/math.h"
 #include "../../include/sdk/offsets.hpp"
+#include "../../include/sdk/client_dll.hpp"
 #include "../../include/sdk/sdk.h"
 
 #include <windows.h>
 #include <cmath>
-#include <thread>
-#include <chrono>
-
-// Оффсеты полей сущности
-constexpr std::ptrdiff_t m_iHealth          = 0x354;
-constexpr std::ptrdiff_t m_iTeamNum         = 0x3E3;
-constexpr std::ptrdiff_t m_pGameSceneNode   = 0x338;
-constexpr std::ptrdiff_t m_vOldOrigin       = 0x1588;
-constexpr std::ptrdiff_t m_hPlayerPawn      = 0x80C;
-constexpr std::ptrdiff_t m_vecViewOffset    = 0xCB0;
-constexpr std::ptrdiff_t m_iIDEntIndex      = 0x1544;
 
 // Высота глаз (EyePos = Origin + ViewOffset, обычно z ~= 64.06)
 constexpr float EYE_HEIGHT = 64.06f;
@@ -41,13 +31,15 @@ void RunAimbot() {
         clientBase + cs2_dumper::offsets::client_dll::dwLocalPlayerPawn);
     if (!localPawn) return;
 
-    int localTeam = Memory::Read<int>(localPawn + m_iTeamNum);
+    int localTeam = Memory::Read<int>(localPawn + cs2_dumper::schemas::client_dll::C_BaseEntity::m_iTeamNum);
+    if (localTeam <= 0) return;
 
     // EyePos = Origin + ViewOffset
-    uintptr_t sceneNode = Memory::Read<uintptr_t>(localPawn + m_pGameSceneNode);
+    uintptr_t sceneNode = Memory::Read<uintptr_t>(localPawn + cs2_dumper::schemas::client_dll::C_BaseEntity::m_pGameSceneNode);
     if (!sceneNode) return;
 
-    Vector3 localOrigin = Memory::Read<Vector3>(sceneNode + m_vOldOrigin);
+    Vector3 localOrigin = Memory::Read<Vector3>(sceneNode + cs2_dumper::schemas::client_dll::CGameSceneNode::m_vecAbsOrigin);
+    // Для более точного расчета можно использовать m_vecViewOffset, но для простоты:
     Vector3 eyePos = { localOrigin.x, localOrigin.y, localOrigin.z + EYE_HEIGHT };
 
     // Текущие углы обзора
@@ -71,23 +63,23 @@ void RunAimbot() {
         uintptr_t controller = Memory::Read<uintptr_t>(listEntry + 120 * (i & 0x1FF));
         if (!controller) continue;
 
-        uint32_t pawnHandle = Memory::Read<uint32_t>(controller + m_hPlayerPawn);
-        if (pawnHandle == 0xFFFFFFFF) continue;
+        uint32_t pawnHandle = Memory::Read<uint32_t>(controller + cs2_dumper::schemas::client_dll::CCSPlayerController::m_hPlayerPawn);
+        if (!pawnHandle || pawnHandle == 0xFFFFFFFF) continue;
 
         uintptr_t pawn = GameEntity::GetPawnFromHandle(entityList, pawnHandle);
         if (!pawn || pawn == localPawn) continue;
 
-        int health = Memory::Read<int>(pawn + m_iHealth);
+        int health = Memory::Read<int>(pawn + cs2_dumper::schemas::client_dll::C_BaseEntity::m_iHealth);
         if (health <= 0 || health > 100) continue;
 
-        int team = Memory::Read<int>(pawn + m_iTeamNum);
-        if (team == localTeam) continue;
+        int team = Memory::Read<int>(pawn + cs2_dumper::schemas::client_dll::C_BaseEntity::m_iTeamNum);
+        if (team <= 0 || team == localTeam) continue;
 
         // Позиция цели
-        uintptr_t targetScene = Memory::Read<uintptr_t>(pawn + m_pGameSceneNode);
+        uintptr_t targetScene = Memory::Read<uintptr_t>(pawn + cs2_dumper::schemas::client_dll::C_BaseEntity::m_pGameSceneNode);
         if (!targetScene) continue;
 
-        Vector3 targetOrigin = Memory::Read<Vector3>(targetScene + m_vOldOrigin);
+        Vector3 targetOrigin = Memory::Read<Vector3>(targetScene + cs2_dumper::schemas::client_dll::CGameSceneNode::m_vecAbsOrigin);
 
         // Позиция hitbox'а в зависимости от настроек
         float hitboxHeight;
@@ -128,11 +120,13 @@ void RunAimbot() {
         };
         Math::NormalizeAngles(smoothed);
 
-        // Запись viewAngles обратно в память (Silent Aim)
+        // Запись viewAngles обратно в память
         Memory::Write<Vector3>(
             clientBase + cs2_dumper::offsets::client_dll::dwViewAngles, smoothed);
     }
 }
+
+static DWORD g_LastTriggerTime = 0;
 
 void RunTriggerbot() {
     if (!g_Settings.triggerbot.enabled) return;
@@ -147,10 +141,11 @@ void RunTriggerbot() {
         clientBase + cs2_dumper::offsets::client_dll::dwLocalPlayerPawn);
     if (!localPawn) return;
 
-    int localTeam = Memory::Read<int>(localPawn + m_iTeamNum);
+    int localTeam = Memory::Read<int>(localPawn + cs2_dumper::schemas::client_dll::C_BaseEntity::m_iTeamNum);
+    if (localTeam <= 0) return;
 
     // Читаем m_iIDEntIndex (индекс сущности под прицелом)
-    int crosshairEntity = Memory::Read<int>(localPawn + m_iIDEntIndex);
+    int crosshairEntity = Memory::Read<int>(localPawn + cs2_dumper::schemas::client_dll::C_CSPlayerPawnBase::m_iIDEntIndex);
     if (crosshairEntity <= 0 || crosshairEntity > 64) return;
 
     // Получаем EntityList
@@ -166,29 +161,30 @@ void RunTriggerbot() {
     uintptr_t targetController = Memory::Read<uintptr_t>(listEntry + 120 * (crosshairEntity & 0x1FF));
     if (!targetController) return;
 
-    uint32_t pawnHandle = Memory::Read<uint32_t>(targetController + m_hPlayerPawn);
-    if (pawnHandle == 0xFFFFFFFF) return;
+    uint32_t pawnHandle = Memory::Read<uint32_t>(targetController + cs2_dumper::schemas::client_dll::CCSPlayerController::m_hPlayerPawn);
+    if (!pawnHandle || pawnHandle == 0xFFFFFFFF) return;
 
     uintptr_t targetPawn = GameEntity::GetPawnFromHandle(entityList, pawnHandle);
     if (!targetPawn) return;
 
     // Проверка здоровья
-    int health = Memory::Read<int>(targetPawn + m_iHealth);
-    if (health <= 0) return;
+    int health = Memory::Read<int>(targetPawn + cs2_dumper::schemas::client_dll::C_BaseEntity::m_iHealth);
+    if (health <= 0 || health > 200) return;
 
     // Проверка команды (не стреляем по союзникам, если не включен FF)
-    int targetTeam = Memory::Read<int>(targetPawn + m_iTeamNum);
+    int targetTeam = Memory::Read<int>(targetPawn + cs2_dumper::schemas::client_dll::C_BaseEntity::m_iTeamNum);
     if (!g_Settings.triggerbot.friendlyFire && targetTeam == localTeam) return;
 
-    // Задержка перед выстрелом
-    if (g_Settings.triggerbot.delay_ms > 0) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(g_Settings.triggerbot.delay_ms));
+    // Неблокирующая задержка (вместо sleep_for, замораживавшего игру)
+    DWORD currentTime = GetTickCount();
+    if (currentTime - g_LastTriggerTime < static_cast<DWORD>(g_Settings.triggerbot.delay_ms + 20)) {
+        return; // Еще не прошло достаточно времени
     }
 
-    // Симуляция клика мышью
+    // Симуляция клика мышью (без sleep)
     mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
     mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
+    g_LastTriggerTime = currentTime;
 }
 
 } // namespace Combat
