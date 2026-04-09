@@ -38,6 +38,7 @@ add_library(${PROJECT_NAME} SHARED
     # MinHook
     thirdparty/minhook/src/buffer.c
     thirdparty/minhook/src/hook.c
+    thirdparty/minhook/src/trampoline.c
     thirdparty/minhook/src/hde/hde32.c
     thirdparty/minhook/src/hde/hde64.c
 )
